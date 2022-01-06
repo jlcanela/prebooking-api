@@ -8,7 +8,9 @@ object HttpServer extends App {
     app <- Prebook.httpApp
     s <-  Server.start(8090, app.silent)
   } yield s
+
+  def app = server.provideLayer(Prebook.layer)
   // Run it like any simple app
   override def run(args: List[String]): URIO[zio.ZEnv, ExitCode] = 
-    server.provideLayer(Prebook.layer).exitCode
+    app.exitCode
 }

@@ -24,7 +24,11 @@ case class PrebookLive(ref: Ref[Int]) extends Prebook:
           _ <- ref.update(_ + 1)
           count <- ref.get
         } yield Response.text(s"""{"count":${count}}""")
-    }
+      case Method.GET -> !! / "prebook" =>
+        for {
+          count <- ref.get
+        } yield Response.text(s"""{"count":${count}}""")
+     }
 
     // Create HTTP route
     val app: HttpApp[Any, Nothing] = Http.collect[Request] {

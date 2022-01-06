@@ -17,6 +17,6 @@ object prebookingapi extends ScalaModule {
 
   )
 
-  override def mainClass = T { Some("HttpServer") }
+  override def mainClass = T { Some("Cli") }
 
 }
