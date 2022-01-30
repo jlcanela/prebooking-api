@@ -47,12 +47,9 @@ Requests/sec:  27732.39
 Transfer/sec:      2.13MB
 ```
 
-Ensure result is sound
-```
-curl -d '{"day":"2022/01/01", "user":1234}' -H "Content-Type: application/json" -X POST http://localhost:8090/prebook
-{"count":278496}
-```
+Note: after some ramp-up I get ~ 36000 Requests/sec with 8 cores / 16 threads
 
-Result is not ok: 278450 <> 278496
-
-Plausible explanation: interrupted last requests are not counted by test tool but taken into account at server level. 
+Ensure counter have been incremented after multiple test sessions:
+```
+curl http://localhost:8090/prebook
+```

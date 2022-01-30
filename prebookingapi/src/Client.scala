@@ -12,7 +12,7 @@ object SimpleClient extends App {
   val post: Method = Method.POST
   val url: String  = "http://localhost:8090/prebook"
   val headers: Headers = Headers.apply("Content-Type", "application/json")
-  val content: HttpData[Any, Nothing] = HttpData.fromString("""{"day":"2022/01/01", "user":1234}""")
+  val content = HttpData.fromString("""{"day":"2022/01/01", "user":1234}""")
   
   val call = for {    
     u <- ZIO.fromEither(URL.fromString(url))
@@ -27,12 +27,12 @@ object SimpleClient extends App {
   val n = 25000
   
   val program = for {
-    start <- clock.nanoTime
+    start <- Clock.nanoTime
     count <- ZIO.mergeAllParN(16)(Iterable.fill(n)(call))(0)((acc, _) => acc + 1)
-    end <- clock.nanoTime
-    _ <- console.putStrLn(s"${(end-start)/(1000000)} ms for ${count} items")
+    end <- Clock.nanoTime
+    _ <- Console.printLine(s"${(end-start)/(1000000)} ms for ${count} items")
     res <- status
-    _ <- console.putStrLn(res)
+    _ <- Console.printLine(res)
   } yield ()
 
   def app = program.provideCustomLayer(env)

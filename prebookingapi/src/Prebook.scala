@@ -2,23 +2,24 @@ import zhttp.http._
 import zhttp.service.Server
 import zio._
 
-trait Prebook:
-  def httpApp: ZIO[Any, Nothing, HttpApp[Any, Nothing]]
+trait Prebook {
+  def httpApp: HttpApp[Any, Throwable]
+}
 
-object Prebook:
+object Prebook {
 
-  def layer: ULayer[Has[Prebook]] = ZLayer.fromEffect(for {
+  def layer = ZLayer.fromEffect(for {
     ref <- Ref.make(0)
   } yield PrebookLive(ref))
   
-  def httpApp: ZIO[Has[Prebook], Nothing, HttpApp[Any, Nothing]] = ZIO.serviceWith[Prebook](_.httpApp)
+  def httpApp = ZIO.serviceWith[Prebook](_.httpApp)
 
-end Prebook
+}
 
-case class PrebookLive(ref: Ref[Int]) extends Prebook:
-  def httpApp: ZIO[Any, Nothing, HttpApp[Any, Nothing]] = {
+case class PrebookLive(ref: Ref[Int]) extends Prebook {
+  def httpApp: HttpApp[Any, Throwable] = {
 
-    val prebook: HttpApp[Any, Nothing] = Http.collectM[Request] {
+    val prebook = Http.collectZIO[Request] {
       case Method.POST -> !! / "prebook" =>
         for {
           _ <- ref.update(_ + 1)
@@ -30,12 +31,13 @@ case class PrebookLive(ref: Ref[Int]) extends Prebook:
         } yield Response.text(s"""{"count":${count}}""")
      }
 
-    // Create HTTP route
-    val app: HttpApp[Any, Nothing] = Http.collect[Request] {
+    val app =  Http.collect[Request] {
+      case Method.GET -> !! / "test" => Response.text("Hello World!")
       case Method.GET -> !! / "text" => Response.text("Hello World!")
       case Method.GET -> !! / "json" =>
         Response.json("""{"greetings": "Hello World!"}""")
     }
 
-    return ZIO.succeed(prebook ++ app)
+    prebook ++ app
   }
+}
