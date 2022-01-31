@@ -22,57 +22,7 @@ object Prebook {
 }
 
 case class PrebookLive(ref: Ref[Int]) extends Prebook {
-
-  lazy val webRequestsCounter: ZIOMetric.Counter[Any] =
-    ZIOMetric.count("web-requests")
-
-  lazy val requestDurations: ZIOMetric.Histogram[Any] =
-    ZIOMetric.observeDurations(
-      "web-request-durations",
-      ZIOMetric.Histogram.Boundaries.linear(0, 100, 10)
-    )(_.toMillis.toDouble)
-
-  lazy val requestDurationsSummary: ZIOMetric.Summary[Double] =
-    ZIOMetric.observeSummary(
-      "summary",
-      60.minutes,
-      10,
-      0,
-      Chunk(0.5, 0.9, 0.95, 0.99, 0.999)
-    )
-
-  lazy val httpResponseStatusCodes: ZIOMetric.SetCount[Int] =
-    ZIOMetric.occurrencesWith("service-return-codes", "count")(_.toString)
-
-  lazy val webRequestsMiddleware: HttpMiddleware[Any, Nothing] =
-    Middleware.runBefore(webRequestsCounter.increment)
-
-  lazy val requestsDurationsMiddleware: HttpMiddleware[Any, Nothing] =
-    Middleware.interceptZIO[Request, Response]({ request =>
-      ZIO.succeed(java.lang.System.currentTimeMillis)
-    })({ case (response, startTime) =>
-      requestDurations
-        .observe((java.lang.System.currentTimeMillis() - startTime).toDouble)
-        .as(response)
-    })
-
-  lazy val httpResponseStatusCodesMiddleware: HttpMiddleware[Any, Nothing] =
-    Middleware.identity.mapZIO { response: Response =>
-      httpResponseStatusCodes.observe(response.status.toString).as(response)
-    }
-
-  lazy val metricsMiddleware: HttpMiddleware[Any, Nothing] =
-    Middleware.interceptZIO[Request, Response]({
-      case Method.GET -> !! / "healthcheck" =>
-        ZIO.succeed(Some(MetricClient.unsafeStates))
-      case request => ZIO.succeed(None)
-    })({
-      case (response, None)   => ZIO.succeed(response)
-      case (_, Some(metrics)) => ZIO.succeed(Response.text(metrics.toString))
-    })
-
-  val middlewares = webRequestsMiddleware ++ requestsDurationsMiddleware ++ httpResponseStatusCodesMiddleware
-
+  
   def httpApp: HttpApp[Any, Throwable] = {
 
     val prebook = Http.collectZIO[Request] {
@@ -87,17 +37,12 @@ case class PrebookLive(ref: Ref[Int]) extends Prebook {
         } yield Response.text(s"""{"count":${count}}""")
     }
 
-    val healthcheck = Http.collectZIO[Request] {
-      case Method.GET -> !! / "healthcheck" =>
-        ZIO.succeed(Response.text(Metrics(MetricClient.unsafeStates).toString))
-    }
-
     val app = Http.collect[Request] {
       case Method.GET -> !! / "text" => Response.text("Hello World!")
       case Method.GET -> !! / "json" =>
         Response.json("""{"greetings": "Hello World!"}""")
     }
 
-    middlewares(prebook ++ app  ++ healthcheck)
+    prebook ++ app
   }
 }
