@@ -9,8 +9,6 @@ trait Prebook {
   def httpApp: HttpApp[Any, Throwable]
 }
 
-case class Metrics(metrics: Map[MetricKey, MetricState])
-
 object Prebook {
 
   def layer: ZLayer[Any, Nothing, Prebook] = ZLayer.fromEffect(for {
@@ -22,6 +20,13 @@ object Prebook {
 }
 
 case class PrebookLive(ref: Ref[Int]) extends Prebook {
+
+  implicit val codecLabel: JsonCodec[MetricLabel] = DeriveJsonCodec.gen[MetricLabel]
+  implicit val codecBoundaries: JsonCodec[ZIOMetric.Histogram.Boundaries] = DeriveJsonCodec.gen[ZIOMetric.Histogram.Boundaries]
+  implicit val codecKey: JsonCodec[MetricKey] = DeriveJsonCodec.gen[MetricKey]
+  implicit val codecType: JsonCodec[MetricType] = DeriveJsonCodec.gen[MetricType]
+  implicit val codecState: JsonCodec[MetricState] = DeriveJsonCodec.gen[MetricState]
+  implicit val codec: JsonCodec[Map[MetricKey, MetricState]] = DeriveJsonCodec.gen[Map[MetricKey, MetricState]]
 
   lazy val webRequestsCounter: ZIOMetric.Counter[Any] =
     ZIOMetric.count("web-requests")
@@ -68,7 +73,7 @@ case class PrebookLive(ref: Ref[Int]) extends Prebook {
       case request => ZIO.succeed(None)
     })({
       case (response, None)   => ZIO.succeed(response)
-      case (_, Some(metrics)) => ZIO.succeed(Response.text(metrics.toString))
+      case (_, Some(metrics)) => ZIO.succeed(Response.text(metrics.toJson))
     })
 
   val middlewares = webRequestsMiddleware ++ requestsDurationsMiddleware ++ httpResponseStatusCodesMiddleware
@@ -89,7 +94,7 @@ case class PrebookLive(ref: Ref[Int]) extends Prebook {
 
     val healthcheck = Http.collectZIO[Request] {
       case Method.GET -> !! / "healthcheck" =>
-        ZIO.succeed(Response.text(Metrics(MetricClient.unsafeStates).toString))
+        ZIO.succeed(Response.text(MetricClient.unsafeStates.toList.toJson))
     }
 
     val app = Http.collect[Request] {
