@@ -18,6 +18,7 @@ object prebookingapi extends ScalaModule {
     ivy"dev.zio::zio::${ZioVersion}",
  //   ivy"com.scalawilliam::xs4s-zio:0.9.1",
     ivy"io.d11::zhttp:${ZioHttpVersion}",
+    ivy"dev.zio::zio-json:${ZioJsonVersion}",
  //   ivy"dev.zio::zio-cli:0.1.0"
 
   )

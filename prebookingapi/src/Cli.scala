@@ -10,6 +10,6 @@ object Cli extends App {
   } 
 
   override def run(args: List[String]): URIO[zio.ZEnv, ExitCode] = 
-    program(args).exitCode//.provideCustomLayer(env)
+    program(args).exitCode
 
 }

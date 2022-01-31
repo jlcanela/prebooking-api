@@ -4,6 +4,12 @@ Entrance in some amusement parks is conditionned by prebooking.
 
 Let’s develop a simple API to enable prebooking for a given day. 
 
+## Run API
+
+```
+./mill prebookingapi.run serve
+```
+
 ## Use cases
 
 **As a tourist a want to prebook n tickets for a given day yyyy/mm/dd.**
